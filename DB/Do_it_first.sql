@@ -2,9 +2,9 @@
 path PATH=C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;c:\Program Files (x86)\Microsoft SQL Server\100\Tools\Binn\;c:\Program Files\Microsoft SQL Server\100\Tools\Binn\;c:\Program Files\Microsoft SQL Server\100\DTS\Binn\;C:\Program Files\nodejs\;C:\Program Files\Git\cmd;C:\Program Files\MySQL\MySQL Shell 8.0\bin\;C:\Users\admin\AppData\Local\Microsoft\WindowsApps;C:\Program Files\Bandizip\;C:\Users\admin\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\admin\AppData\Roaming\npm;C:\Program Files\MySQL\MySQL Server 8.0\bin
 
 2. 커맨드 창에서 
-mysql -u root -p
+mysql -u root -p1234
 
-3. 아래 몽땅 긁어서 실행
+3. 아래 몽땅 긁어서 실행;
 
 CREATE SCHEMA shoppingmall;
 
@@ -26,11 +26,7 @@ CREATE TABLE customers (
   PRIMARY KEY(idcustomers));
 
 INSERT INTO customers (id, name, pw, address, joinDate, lastLogin, grade, loginFailCnt, accountSuspension) 
-<<<<<<< HEAD
-      VALUES ('tester', '테스터훈', '1234', '경기도 부천시 상동 부천정보산업고', '2005-07-01 14:44:44', '2023-04-05 14:44:44', '돌', 0, 0);
-=======
       VALUES ('tester', '테스터훈', '1234', '경기도 부천시 상동 부천정보산업고등학교', '2005-07-01 14:44:44', '2023-04-05 14:44:44', '돌', 0, 0);
->>>>>>> 443b225ec304de06af390247f199b7c65b1ee4d9
 
 CREATE USER 'shoppingmall'@'%' IDENTIFIED BY '1234';
 

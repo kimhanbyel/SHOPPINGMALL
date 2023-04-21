@@ -27,78 +27,83 @@ const userEdit = (req, res) => {
       pool.query(sql, values, (err, field)=>{
         if(err) throw err;
         let msg = '수정완료';
-        res.render('message.html', {message : msg});
+        res.render('message.html', {message : msg, user:req.session.user});
       })
     } else {
       let msg = '비밀번호가 일치하지 않습니다.';
-      res.render('message.html', {message : msg});
+      res.render('message.html', {message : msg, user:req.session.user});
     }
   })  
 }
 
-const cart = (req, res)=>{
-  let sql =  `SELECT * FROM carts A LEFT JOIN products B ON A.productID = B.idproducts 
-        UNION SELECT * FROM carts A RIGHT JOIN products B ON A.productID = B.idproducts 
-        WHERE A.customerID=?`;
+const cart = (req, res) => {
+  let sql = `SELECT * FROM carts AS A LEFT JOIN products AS B ON A.productID = B.idproducts
+            UNION SELECT * FROM carts AS A RIGHT JOIN products AS B on A.productID = B.idproducts 
+            WHERE A.customerID=?`;
+  
   let values = [req.session.user.id];
   pool.query(sql, values, (err, rows, field)=>{
     if(err) throw err;
-    res.render('cart.html', {user : req.session.user, products: rows} )
-  }) 
-}
-
-const cartProcess = (req, res)=>{
-  let sql = "INSERT INTO carts (customerID, productID, cartsQuantity) value (?, ?, ?)";
-  let values = [req.session.user.id, req.body.productID, req.body.quantity];
-  pool.query(sql, values, (err, field)=>{
-    if(err) throw err;
-    res.render('message.html', {message:"장바구니에 추가되었습니다.", user : req.session.user});
+    let totalPrice = 0;
+    for(row of rows){
+      totalPrice += (row.price*row.cartsQuantity);
+    }
+    res.render('cart.html', {user : req.session.user, products : rows, total : totalPrice})
   })
 }
 
-const cartDelete = (req, res)=>{
-  let sql = "DELETE FROM carts WHERE idcarts in (?)";
-  let values = Object.keys(req.body);
-  values = [values.slice(0, values.length/2)];
-  pool.query(sql, values, (err, field)=>{
+const cartProcess = (req,res)=>{
+  let sql = 'INSERT INTO carts (customerID, productID, cartsQuantity) VALUES (?, ?, ?)'
+  let values = [req.session.user.id, req.body.productID, req.body.quantity];
+  pool.query(sql, values, (err, rows, fields)=>{
+    if(err) throw err;
+    res.render('message.html', {message:"장바구니에 추가되었습니다.", user:req.session.user})
+  })
+}
+
+const cartDelete = (req,res)=>{
+  let sql = 'DELETE FROM carts WHERE idcarts IN (?)';
+  let values = Object.keys(req.body)
+  values = [values.slice(0,values.length/2)];
+  pool.query(sql, values, (err, rows, fields)=>{
     if(err) throw err;
     res.redirect(`/myPage/${req.session.user.id}/cart`);
   })
 }
 
-const cartOrder = (req, res)=>{
-<<<<<<< HEAD
-  pool.query(`SELECT address FROM customers WHERE id='${req.session.user.id}'`, (err, rows, field)=>{
+const cartOrder = (req,res)=>{
+  pool.query(`SELECT address FROM customers WHERE id='${req.session.user.id}'`, (err, rows, fields)=>{
     if(err) throw err;
     const myAddress = rows[0].address;
-
-    let sql =  `SELECT idcarts, name, price FROM carts A LEFT JOIN products B ON A.productID = B.idproducts WHERE idcarts in (?)
-          UNION SELECT idcarts, name, price FROM carts A RIGHT JOIN products B ON A.productID = B.idproducts WHERE idcarts in (?)`
-
+    let sql = `SELECT idcarts, idproducts, name, price, quantity FROM carts AS A LEFT JOIN products AS B ON A.productID = B.idproducts WHERE idcarts IN ?
+         UNION SELECT idcarts, idproducts, name, price, quantity FROM carts AS A RIGHT JOIN products AS B on A.productID = B.idproducts WHERE idcarts IN ?`;
     let cartIds = Object.keys(req.body);
-    cartIds = cartIds.slice(0, cartIds.length/2);
-    let values = [cartIds, cartIds];
-    pool.query(sql, values, (err, rows, field)=>{
-      if (err) throw err;
-      rows.map(row =>row.quantity = req.body['qty'+ row.idcarts]);
-      res.render('order.html', {user : req.session.user,
-        products : rows, 
-        address : myAddress ,
-        totalPrice : rows.reduce((sum, row)=>{return sum+=(row.price * row.quantity)}, 0)
-      })
+    cartIds = [cartIds.slice(0,cartIds.length/2)];
+    values = [cartIds,cartIds];
+    pool.query(sql, values, (err, rows, fields)=>{
+      if(err) throw err;
+      rows.map(row => row.cartQuantity = req.body['qty'+row.idcarts]);
+      req.session.user.order = rows;
+      res.render('order.html', {user:req.session.user, 
+                                products : rows,
+                                address : myAddress, 
+                                totalPrice : rows.reduce((sum, row)=>{return sum+=(row.price*row.cartQuantity)},0),
+                                })
     })
   })
+}
 
-
-
-=======
-  console.log(req.body);
-  
-  res.render('order.html', {user : req.body.user,
-                            products : [{},{},{}], 
-                            address : "가짜주소" ,
-                            totalPrice : "0원입니다." })
->>>>>>> 443b225ec304de06af390247f199b7c65b1ee4d9
+const cartPayment = (req,res)=>{
+  req.session.user.order.map(row => {
+    pool.query(`DELETE FROM carts WHERE idcarts = ${row.idcarts}`,(err,fields)=>{
+      if(err) throw err;
+      let sql = `UPDATE products SET quantity = ${row.quantity-row.cartQuantity} WHERE idproducts=${row.idproducts}`
+      pool.query(sql, (err, fields)=>{
+        if(err) throw err;
+      });
+    })
+  })
+  res.render('message.html', {message : '결제가 완료되었습니다', user : req.session.user});
 }
 
 
@@ -109,5 +114,6 @@ module.exports = {
   cart,
   cartProcess,
   cartDelete,
-  cartOrder, 
+  cartOrder,
+  cartPayment,
 }
